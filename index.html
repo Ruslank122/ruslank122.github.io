@@ -1,1 +1,116 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="main-body">
+        <div class="card top-area">
+            <div class="logo">Weather Data</div>
+        </div>
+        <div class="card current-data">
+            <div class="card-title">Current weather</div>
+            <div id="current-data-div">
+                <div class="current-data-section">
+                      <div class="card data-entry" id="heat-index">
+                        <div class="data-entry-title">
+                            ♨ Heat index
+                        </div>
+                        <div class="data-entry-value" id="heat-index-val">
+                            25 - mild
+                        </div>
+                    </div>
+                    <div class="card data-entry" id="wind-speed">
+                        <div class="data-entry-title">
+                           🍃 Wind speed
+                        </div>
+                        <div class="data-entry-value" id="wind-speed-val">
+                            4m/s
+                        </div>
+                        <div class="data-entry-value-max" id="wind-speed-max-val">
+                            max. 6
+                        </div>
+                       
+                    </div>
+                    <div class="card data-entry" id="wind-direction">
+                        <div class="data-entry-title">
+                           🧭 Wind direction
+                        </div>
+                        <div class="data-entry-value" id="wind-direction-val">
+                            West
+                        </div>  
+                    </div>
+                </div>
+
+                <div class="current-data-section">
+                    <div class="card data-entry" id="temperature">
+                        <div class="data-entry-title">
+                           🌡 Temperature
+                        </div>
+                        <div class="data-entry-value" id="temperature-val">
+                            33
+                        </div>
+                        <div class="data-entry-value-max" id="temperature-max-val">
+                            max. 34
+                        </div>
+                    </div>
+                    <div class="card data-entry" id="humidity">
+                        <div class="data-entry-title">
+                           💧 Humidity
+                        </div>
+                        <div class="data-entry-value" id="humidity-val">
+                            60
+                        </div>
+                    </div>
+                </div>
+                <div class="current-data-section">
+                  
+                    
+                    <div class="card data-entry" id="pressure">
+                        <div class="data-entry-title">
+                            🕰 Pressure
+                        </div>
+                        <div class="data-entry-value" id="pressure-val">
+                            1004
+                        </div>
+                        <div class="data-entry-value-max">
+                            30m ASL
+                        </div>
+                    </div>
+                    <div class="card data-entry" id="precipitation">
+                        <div class="data-entry-title">
+                           🌧 Precipitation
+                        </div>
+                        <div class="data-entry-value" id="precipitation-val">
+                            0.0
+                            <div class="data-entry-value-suffix">
+                                /10 min.
+                            </div>
+                        </div>
+                        <div class="data-entry-value-max" id="precipitation-hour-val">
+                            0.0 last hour
+                        </div>
+                    </div>
+                    <div class="card data-entry" id="last-updated">
+                        <div class="data-entry-title">
+                           ⏱ Last update
+                        </div>
+                        <div class="data-entry-value" id="last-updated-val">
+                            10 min. ago
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card graph-data">
+            
+        </div>
+    </div>
+</body>
+<script type="module" src="/script.js"></script>
+</html>
