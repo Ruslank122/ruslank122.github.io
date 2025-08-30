@@ -43,6 +43,7 @@
     background-color: var(--card-bg);
     background-clip: content-box;
     padding: 5px 0px;
+    overflow: hidden;
 }
 .top-area
 {
@@ -65,7 +66,7 @@
 {
     height: calc(100% - var(--current-data-height) - var(--top-bar-height));
     width: 100%;
-  
+    flex-direction: column;
     overflow-y: auto;
     overflow-x: hidden;
 }
