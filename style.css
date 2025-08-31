@@ -125,3 +125,25 @@
 {
     font-size: 0.7em;
 }
+#current-data-div
+{
+    display: none;
+}
+.loading-div
+{
+    justify-content: center;
+    text-align: center;
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+    font-size: 3em;
+}
+.loading-error
+{
+    display: none;
+    text-align: center;
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+    font-size: 1.2em;
+}
+#charts
+{
+    display: none;
+}

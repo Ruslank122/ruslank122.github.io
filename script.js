@@ -25,9 +25,11 @@ const database = getDatabase(app);
 const date = new Date();
 const currentDate = date.toISOString().split('T')[0];
 
-const ctx = document.getElementById('charts');
+const ctx = document.getElementById('chart1');
+const ctx2 = document.getElementById('chart2');
+const ctx3 = document.getElementById('chart3');
 
-var hello = new Chart(ctx, {
+var tempGraph = new Chart(ctx, {
   type: 'line',
   data: {
     labels: [],
@@ -41,7 +43,17 @@ var hello = new Chart(ctx, {
     scales: {
     x:
     {
-        type: "linear",
+        type: "time",
+        bounds: "ticks",
+        time:
+        {
+          displayFormats:
+          {
+            hour: "HH:mm"
+          }
+        },
+        min: new Date().setUTCHours(0, 0, 0, 0),
+        max: new Date().setUTCHours(23, 59, 59, 999)
     },
       y: {
         beginAtZero: false
@@ -49,7 +61,70 @@ var hello = new Chart(ctx, {
     }
   }
 });
-
+var humidityGraph = new Chart(ctx2, {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [{
+      label: 'Temperature, deg. C',
+      data: [],
+      borderWidth: 1
+    }]
+  },
+  options: {
+    scales: {
+    x:
+    {
+        type: "time",
+        bounds: "ticks",
+        time:
+        {
+          displayFormats:
+          {
+            hour: "HH:mm"
+          }
+        },
+        min: new Date().setUTCHours(0, 0, 0, 0),
+        max: new Date().setUTCHours(23, 59, 59, 999)
+    },
+      y: {
+        beginAtZero: false
+      }
+    }
+  }
+});
+var voltGraph = new Chart(ctx3, {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [{
+      label: 'Temperature, deg. C',
+      data: [],
+      borderWidth: 1
+    }]
+  },
+  options: {
+    scales: {
+    x:
+    {
+        type: "time",
+        bounds: "ticks",
+        time:
+        {
+          displayFormats:
+          {
+            hour: "HH:mm"
+          }
+        },
+        min: new Date().setUTCHours(0, 0, 0, 0),
+        max: new Date().setUTCHours(23, 59, 59, 999)
+    },
+      y: {
+        beginAtZero: false
+      }
+    }
+  }
+});
 const heatIndexThresholds =
 {
     22: "Light",
@@ -107,9 +182,10 @@ get(measurementsRef).then((snapshot) =>
                 sampleData.set(element.val()["uploadPath"], element.val());
             }
         });
-        printData(sampleData);
+        
         setInterval(() => {printData(sampleData);}, 30000);
     }
+    printData(sampleData);
 });
 
 onChildAdded(measurementsRef, snapshot =>
@@ -138,8 +214,18 @@ function timeDiffMinutesFromNow(dateThen)
 function printData(samples)
 {
 
+  var dataExists = sampleData.size != 0;
+
+  document.querySelectorAll(".loading-div, .loading-error").forEach(element => {
+    element.style.display = (dataExists) ? "none" : "block";
+  });
+  document.getElementById("current-data-div").style.display = (dataExists) ? "flex" : "none"
+
    console.log(samples);
    
+   if(!dataExists)
+    return;
+
    var latestDataKey = [...samples.keys()].at(-1);
    var data = [...samples.values()].at(-1);
 
@@ -160,18 +246,18 @@ function printData(samples)
    const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto", style: "short" });
 
    var rainLastHour = 0;
-   var labels = [];
    var DP = [];
+   var DPHumidity = [];
+   var DPVoltage = [];
    samples.forEach(element => {
     var dateR = element["uploadPath"].split('/')[1];
     var timeR = element["uploadPath"].split('/')[2];
     console.log(dateR, timeR);
     var dateLastUpdateR = new Date(`${dateR}T${timeR}Z`);
 
-    labels.push(dateLastUpdateR.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-
-    let x = dateLastUpdateR.getHours() * 60 + dateLastUpdateR.getMinutes();
-    DP.push({"x": x, "y": element["avgTemp"]});
+    DP.push({"x": dateLastUpdateR, "y": element["avgTemp"]});
+    DPHumidity.push({"x": dateLastUpdateR, "y": element["humidity"]});
+    DPVoltage.push({"x": dateLastUpdateR, "y": element["batteryV"]});
 
     if(timeDiffMinutesFromNow(dateLastUpdateR) <= 60)
         rainLastHour += element["totalRain"];
@@ -192,16 +278,30 @@ function printData(samples)
   document.getElementById("precipitation-hour-val").textContent = `${rainLastHour.toFixed(1)} last hour`;
   document.getElementById("last-updated-val").textContent = rtf.format(-diff, 'minute');
   
-  hello.data.labels = labels;
-
-  hello.data.datasets = [
+  tempGraph.data.datasets = [
     {
         label: "Temperature, deg. C",
         data: DP,
         borderWidth: 1
     }
   ];
-  hello.update("none");
+  humidityGraph.data.datasets = [
+    {
+        label: "Humidity, %",
+        data: DPHumidity,
+        borderWidth: 1
+    }
+  ];
+    voltGraph.data.datasets = [
+    {
+        label: "Voltage, V",
+        data: DPVoltage,
+        borderWidth: 1
+    }
+  ];
+  tempGraph.update("none");
+  humidityGraph.update("none");
+  voltGraph.update("none");
 }
 
 

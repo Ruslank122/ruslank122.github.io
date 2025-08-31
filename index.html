@@ -14,6 +14,15 @@
         </div>
         <div class="card current-data">
             <div class="card-title">Current weather</div>
+             <div class="loading-div">
+                    Loading...
+            </div>
+            <div class="loading-error">
+                    There's no data for today... <br>
+                    If it's just past 00:00 UTC the station probably didn't upload any data yet, <br>
+                    otherwise... we have major problems
+            </div>
+
             <div id="current-data-div">
                 <div class="current-data-section">
                       <div class="card data-entry" id="heat-index">
@@ -108,13 +117,26 @@
             </div>
         </div>
         <div class="card graph-data">
+            <div class="loading-div">
+                    Loading...
+            </div>
+            <div class="loading-error">
+                    No graphs to display as there's an error fetching data!
+            </div>
             <div class="card-title">Data graphs</div>
-            <canvas id="charts">
+            <canvas id="chart1">
+
+            </canvas>
+            <canvas id="chart2">
+
+            </canvas>
+            <canvas id="chart3">
 
             </canvas>
         </div>
     </div>
 </body>
-<script type="module" src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <script type="module" src="/script.js"></script>
 </html>
