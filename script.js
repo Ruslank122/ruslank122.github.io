@@ -273,7 +273,14 @@ function printData(samples)
   document.getElementById("temperature-max-val").textContent = `max. ${data.maxTemp.toFixed(1)}`;
   document.getElementById("humidity-val").textContent = `${data.humidity.toFixed(0)}%`;
 
-  document.getElementById("pressure-val").textContent = `${data.pressure.toFixed(1)} hPa`;
+  if(data.pressure != null)
+  {
+    document.getElementById("pressure-val").textContent = `${data.pressure.toFixed(1)} hPa`;
+  }
+  else
+  {
+    document.getElementById("pressure-val").textContent = `-`;
+  }
   document.getElementById("precipitation-val").childNodes[0].nodeValue = `${data.totalRain.toFixed(1)}mm`;
   document.getElementById("precipitation-hour-val").textContent = `${rainLastHour.toFixed(1)} last hour`;
   document.getElementById("last-updated-val").textContent = rtf.format(-diff, 'minute');
