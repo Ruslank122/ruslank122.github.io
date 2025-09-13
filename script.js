@@ -28,7 +28,10 @@ const currentDate = date.toISOString().split('T')[0];
 const ctx = document.getElementById('chart1');
 const ctx2 = document.getElementById('chart2');
 const ctx3 = document.getElementById('chart3');
+const ctx4 = document.getElementById('chart4');
 
+Chart.defaults.color = "#444444";
+Chart.defaults.font.family = "'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif";
 var tempGraph = new Chart(ctx, {
   type: 'line',
   data: {
@@ -40,6 +43,14 @@ var tempGraph = new Chart(ctx, {
     }]
   },
   options: {
+    plugins:
+    {
+      title:
+      {
+        display: true,
+        text: "Temperature"
+      }
+    },
     scales: {
     x:
     {
@@ -72,6 +83,14 @@ var humidityGraph = new Chart(ctx2, {
     }]
   },
   options: {
+     plugins:
+    {
+      title:
+      {
+        display: true,
+        text: "Humidity"
+      }
+    },
     scales: {
     x:
     {
@@ -93,7 +112,52 @@ var humidityGraph = new Chart(ctx2, {
     }
   }
 });
-var voltGraph = new Chart(ctx3, {
+var windGraph = new Chart(ctx3, {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [{
+      label: 'Avg. speed, m/s',
+      data: [],
+      borderWidth: 1
+    },
+    {
+      label: 'Max. speed, m/s',
+      data: [],
+      borderWidth: 1
+    }]
+  },
+  options: {
+     plugins:
+    {
+      title:
+      {
+        display: true,
+        text: "Wind speed"
+      }
+    },
+    scales: {
+    x:
+    {
+        type: "time",
+        bounds: "ticks",
+        time:
+        {
+          displayFormats:
+          {
+            hour: "HH:mm"
+          }
+        },
+        min: new Date().setUTCHours(0, 0, 0, 0),
+        max: new Date().setUTCHours(23, 59, 59, 999)
+    },
+      y: {
+        beginAtZero: false
+      }
+    }
+  }
+});
+var voltGraph = new Chart(ctx4, {
   type: 'line',
   data: {
     labels: [],
@@ -104,6 +168,14 @@ var voltGraph = new Chart(ctx3, {
     }]
   },
   options: {
+     plugins:
+    {
+      title:
+      {
+        display: true,
+        text: "Battery charge"
+      }
+    },
     scales: {
     x:
     {
@@ -139,7 +211,7 @@ function getHeatIndexLabel(temp) {
         .map(Number)
         .sort((a, b) => a - b);
 
-    let label = "Unknown";
+    let label = "None";
 
     for (const t of thresholds) {
         if (temp < t) break;
@@ -149,19 +221,17 @@ function getHeatIndexLabel(temp) {
     return label;
 }
 const windDirections = [
-    "North",       // 0
-    "North-East",  // 45
-    "East",        // 90
-    "South-East",  // 135
-    "South",       // 180
-    "South-West",  // 225
-    "West",        // 270
-    "North-West"   // 315
+    "N",       // 0
+    "NE",  // 45
+    "E",        // 90
+    "SE",  // 135
+    "S",       // 180
+    "SW",  // 225
+    "W",        // 270
+    "NW"   // 315
 ];
 function getWindDirection(angle) {
-    // Normalize angle 0–360
-    angle = ((angle % 360) + 360) % 360;
-
+    
     // Each sector is 45°, offset by 22.5° to center
     const index = Math.round(angle / 45) % 8;
 
@@ -176,6 +246,7 @@ get(measurementsRef).then((snapshot) =>
 {
     if(snapshot.exists())
     {
+        console.log(snapshot.val());
         snapshot.forEach(element => {
             //console.log(element.val()["uploadPath"], element.val());
             if(element.val() !== null && !sampleData.has(element.val()["uploadPath"])){
@@ -186,19 +257,59 @@ get(measurementsRef).then((snapshot) =>
         setInterval(() => {printData(sampleData);}, 30000);
     }
     printData(sampleData);
-});
-
-onChildAdded(measurementsRef, snapshot =>
-{
-    const data = snapshot.val();
+    onChildAdded(measurementsRef, snapshot =>
+      {
+      const data = snapshot.val();
+      //console.log("Child added");
     //console.log(data);
     //console.log(snapshot.key);
-    if(data !== null && !sampleData.has(data["uploadPath"])){
+      if(data !== null && !sampleData.has(data["uploadPath"])){
         sampleData.set(data["uploadPath"], data);
-    }
-    printData(sampleData);
+        printData(sampleData);
+      }
+      
+       }
+    );
+});
+
+function calculateSunriseSunset()
+{
+
+  //taken from wikipedia formulas, no idea behind the math here!
+  //Also let's take the numbers from wikipedia where the latitude/longitude is at Nahariya coast line, which is quite close to here but doesn't expose the actual position
+
+  var n = (Date.now() / 86400000) + 0.0008 + 2440587.5 - 2451545;
+  //console.log(n);
+
+  var J = Math.floor(n) - 35/360; //longitude is about +35 deg
+
+  var M = (357.5291 + 0.98560028 * J) % 360.0;
+  var M_rad = M * Math.PI / 180;
+
+  var C = 1.9148*Math.sin(M_rad) + 0.02*Math.sin(2*M_rad) + 0.0003*Math.sin(3*M_rad);
+
+  var gamma = (M + C + 180 + 102.9372) % 360.0;
+  var gamma_rad = gamma * Math.PI / 180;
+
+  var J_transit = 2451545 + J + 0.0053*Math.sin(M_rad) - 0.0069*Math.sin(2*gamma_rad);
+
+  var sin_delta = Math.sin(gamma_rad) * Math.sin(23.4397 * Math.PI / 180);
+  var cos_delta = Math.cos(Math.asin(sin_delta));
+
+  var cos_omega_0 = (Math.sin(-0.833 * Math.PI / 180) - Math.sin(33 * Math.PI / 180) * sin_delta) / (Math.cos(33 * Math.PI / 180) * cos_delta);
+  var hi = Math.acos(cos_omega_0);
+
+  var JRise = J_transit - hi / (2 * Math.PI);
+  var JSet = J_transit + hi / (2 * Math.PI);
+
+  var dateRise = (JRise - 0.0008 - 2440587.5) * 86400000;
+  var dateSet = (JSet - 0.0008 - 2440587.5) * 86400000;
+
+  //console.log(`Sunrise: ${JRise}/${new Date(dateRise)}, sunset: ${JSet}/${new Date(dateSet)}`);
+
+  return {sunrise: new Date(dateRise), sunset: new Date(dateSet)};
+
 }
-);
 
 function timeDiffMinutesFromNow(dateThen)
 {
@@ -206,13 +317,46 @@ function timeDiffMinutesFromNow(dateThen)
 
     var diff = ((dateNow - dateThen) / 1000 / 60).toFixed(0);
  
-    console.log(diff);
+    //console.log(diff);
 
     return diff;
 }
 
 function printData(samples)
 {
+
+  var timings = calculateSunriseSunset();
+  var r = document.querySelector(':root');
+  var labelColor;
+  var cardColor;
+  if(Date.now() < timings.sunrise + 1800000 || Date.now() > timings.sunset - 1800000)
+  {
+    document.querySelector(".main-body").style.background = getComputedStyle(r).getPropertyValue("--bg-color-night");
+    document.querySelector(".main-body").style.color = getComputedStyle(r).getPropertyValue("--font-night");
+    //Chart.defaults.backgroundColor = '#FFFFFF16';
+    labelColor = Chart.defaults.color = getComputedStyle(r).getPropertyValue("--font-night");
+    cardColor = getComputedStyle(r).getPropertyValue("--card-bg-night");
+  }
+  else if(Date.now() > timings.sunrise + 1800000 && Date.now() < timings.sunset - 1800000)
+  {
+    document.querySelector(".main-body").style.background = getComputedStyle(r).getPropertyValue("--bg-color-day");
+    document.querySelector(".main-body").style.color = getComputedStyle(r).getPropertyValue("--font-day");
+    //Chart.defaults.backgroundColor = '#00000016';
+    labelColor = Chart.defaults.color = getComputedStyle(r).getPropertyValue("--font-day");
+    cardColor = getComputedStyle(r).getPropertyValue("--card-bg");
+  }
+  else
+  {
+    document.querySelector(".main-body").style.background = getComputedStyle(r).getPropertyValue("--bg-color-set");
+    document.querySelector(".main-body").style.color = getComputedStyle(r).getPropertyValue("--font-day");
+    //Chart.defaults.backgroundColor = '#00000016';
+    labelColor = Chart.defaults.color = getComputedStyle(r).getPropertyValue("--font-day");
+    cardColor = getComputedStyle(r).getPropertyValue("--card-bg");
+  }
+
+  document.querySelectorAll(".card").forEach(element => {
+      element.style.backgroundColor = cardColor;
+  });
 
   var dataExists = sampleData.size != 0;
 
@@ -221,7 +365,7 @@ function printData(samples)
   });
   document.getElementById("current-data-div").style.display = (dataExists) ? "flex" : "none"
 
-   console.log(samples);
+   //console.log(samples);
    
    if(!dataExists)
     return;
@@ -229,12 +373,12 @@ function printData(samples)
    var latestDataKey = [...samples.keys()].at(-1);
    var data = [...samples.values()].at(-1);
 
-   console.log(latestDataKey, data);
+   //console.log(latestDataKey, data);
 
 //DI=T−.55∗(1−.01∗RH)∗(T−14.5)
    var heatIndex = data.avgTemp - 0.55 * (1 - 0.01 * data.humidity) * (data.avgTemp - 14.5);
 
-   console.log(heatIndex);
+   //console.log(heatIndex);
 
    var date = latestDataKey.split('/')[1];
    var time = latestDataKey.split('/')[2];
@@ -249,15 +393,18 @@ function printData(samples)
    var DP = [];
    var DPHumidity = [];
    var DPVoltage = [];
+   var DPWindAvg = [], DPWindMax = [];
    samples.forEach(element => {
     var dateR = element["uploadPath"].split('/')[1];
     var timeR = element["uploadPath"].split('/')[2];
-    console.log(dateR, timeR);
+    //console.log(dateR, timeR);
     var dateLastUpdateR = new Date(`${dateR}T${timeR}Z`);
 
     DP.push({"x": dateLastUpdateR, "y": element["avgTemp"]});
     DPHumidity.push({"x": dateLastUpdateR, "y": element["humidity"]});
     DPVoltage.push({"x": dateLastUpdateR, "y": element["batteryV"]});
+    DPWindAvg.push({"x": dateLastUpdateR, "y": element["avgWindS"]});
+    DPWindMax.push({"x": dateLastUpdateR, "y": element["maxWindS"]});
 
     if(timeDiffMinutesFromNow(dateLastUpdateR) <= 60)
         rainLastHour += element["totalRain"];
@@ -265,9 +412,8 @@ function printData(samples)
 
 // Update HTML elements with live data
   document.getElementById("heat-index-val").textContent = `${heatIndex.toFixed(1)} - ${getHeatIndexLabel(heatIndex)}`;
-  document.getElementById("wind-speed-val").textContent = `${data.avgWindS.toFixed(2)} m/s`;
+  document.getElementById("wind-val").textContent = `${getWindDirection(data.windD)} ${data.avgWindS.toFixed(2)} m/s`;
   document.getElementById("wind-speed-max-val").textContent = `max. ${data.maxWindS.toFixed(2)}`;
-  document.getElementById("wind-direction-val").textContent = getWindDirection(data.windD);
 
   document.getElementById("temperature-val").textContent = `${data.avgTemp.toFixed(1)}°C`;
   document.getElementById("temperature-max-val").textContent = `max. ${data.maxTemp.toFixed(1)}`;
@@ -285,30 +431,23 @@ function printData(samples)
   document.getElementById("precipitation-hour-val").textContent = `${rainLastHour.toFixed(1)} last hour`;
   document.getElementById("last-updated-val").textContent = rtf.format(-diff, 'minute');
   
-  tempGraph.data.datasets = [
-    {
-        label: "Temperature, deg. C",
-        data: DP,
-        borderWidth: 1
-    }
-  ];
-  humidityGraph.data.datasets = [
-    {
-        label: "Humidity, %",
-        data: DPHumidity,
-        borderWidth: 1
-    }
-  ];
-    voltGraph.data.datasets = [
-    {
-        label: "Voltage, V",
-        data: DPVoltage,
-        borderWidth: 1
-    }
-  ];
+  tempGraph.data.datasets[0].data = DP;
+  humidityGraph.data.datasets[0].data = DPHumidity;
+  voltGraph.data.datasets[0].data = DPVoltage;
+  windGraph.data.datasets[0].data = DPWindAvg;
+  windGraph.data.datasets[1].data = DPWindMax;
+
+  tempGraph.options.scales.x.ticks.color = tempGraph.options.scales.x.grid.color = tempGraph.options.scales.y.ticks.color = tempGraph.options.scales.y.grid.color = labelColor;
+  humidityGraph.options.scales.x.ticks.color = humidityGraph.options.scales.x.grid.color = humidityGraph.options.scales.y.ticks.color = humidityGraph.options.scales.y.grid.color = labelColor;
+  voltGraph.options.scales.x.ticks.color =   voltGraph.options.scales.x.grid.color =   voltGraph.options.scales.y.ticks.color =   voltGraph.options.scales.y.grid.color = labelColor;
+  windGraph.options.scales.x.ticks.color = windGraph.options.scales.x.grid.color = windGraph.options.scales.y.ticks.color = windGraph.options.scales.y.grid.color = labelColor;
+
+  
   tempGraph.update("none");
   humidityGraph.update("none");
   voltGraph.update("none");
+  windGraph.update("none");
+
 }
 
 

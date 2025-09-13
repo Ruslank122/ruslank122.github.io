@@ -12,8 +12,8 @@
         <div class="card top-area">
             <div class="logo">Weather Data</div>
         </div>
-        <div class="card current-data">
-            <div class="card-title">Current weather</div>
+        <div class="card-no-bg current-data">
+            <!-- div class="card-title">Current weather</div -->
              <div class="loading-div">
                     Loading...
             </div>
@@ -33,25 +33,17 @@
                             25 - mild
                         </div>
                     </div>
-                    <div class="card data-entry" id="wind-speed">
+                    <div class="card data-entry" id="wind">
                         <div class="data-entry-title">
-                           🍃 Wind speed
+                           🍃 Wind
                         </div>
-                        <div class="data-entry-value" id="wind-speed-val">
-                            4m/s
+                        <div class="data-entry-value" id="wind-val">
+                           N 4m/s
                         </div>
                         <div class="data-entry-value-max" id="wind-speed-max-val">
                             max. 6
                         </div>
                        
-                    </div>
-                    <div class="card data-entry" id="wind-direction">
-                        <div class="data-entry-title">
-                           🧭 Wind direction
-                        </div>
-                        <div class="data-entry-value" id="wind-direction-val">
-                            West
-                        </div>  
                     </div>
                 </div>
 
@@ -116,23 +108,30 @@
                 </div>
             </div>
         </div>
-        <div class="card graph-data">
+        <div class="card-no-bg graph-data">
             <div class="loading-div">
                     Loading...
             </div>
             <div class="loading-error">
                     No graphs to display as there's an error fetching data!
             </div>
-            <div class="card-title">Data graphs</div>
-            <canvas id="chart1">
+            <div id="graphs">
+            <!-- div class="card-title">Data graphs</div-->
+             <div class="current-data-section" >
+                <canvas id="chart1" class="card"> 
 
-            </canvas>
-            <canvas id="chart2">
+                </canvas>
+                <canvas id="chart2" class="card">
 
-            </canvas>
-            <canvas id="chart3">
-
-            </canvas>
+                </canvas>
+            </div>
+            <div class="current-data-section">
+                <canvas id="chart3" class="card">
+                </canvas>
+                <canvas id="chart4" class="card">
+                </canvas>
+            </div>
+        </div>
         </div>
     </div>
 </body>
