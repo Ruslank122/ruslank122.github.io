@@ -54,6 +54,7 @@
     background-clip: content-box;
     padding: 5px 0px;
     overflow: hidden;
+    justify-content: center;
 }
 .card-no-bg
 {
@@ -133,7 +134,7 @@
     display: grid;
     flex: 1;
     gap: 5px;
-     grid-template-columns: 1fr; /* 1 column by default */
+    grid-template-columns: 1fr; /* 1 column by default */
     /*padding: 0px 5px;*/
 }
 
