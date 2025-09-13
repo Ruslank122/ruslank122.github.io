@@ -77,7 +77,7 @@ var humidityGraph = new Chart(ctx2, {
   data: {
     labels: [],
     datasets: [{
-      label: 'Temperature, deg. C',
+      label: 'Humidity, %',
       data: [],
       borderWidth: 1
     }]
@@ -162,7 +162,7 @@ var voltGraph = new Chart(ctx4, {
   data: {
     labels: [],
     datasets: [{
-      label: 'Temperature, deg. C',
+      label: 'Voltage, v',
       data: [],
       borderWidth: 1
     }]

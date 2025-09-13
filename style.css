@@ -130,10 +130,17 @@
 }
 #current-data-div, #graphs
 {
-    display: flex;
+    display: grid;
     flex: 1;
     gap: 5px;
-    padding: 0px 5px;
+     grid-template-columns: 1fr; /* 1 column by default */
+    /*padding: 0px 5px;*/
+}
+
+@media (min-width: 768px) {
+  #graphs {
+    grid-template-columns: repeat(2, 1fr); /* 2 columns on PC */
+  }
 }
 #wind-speed
 {
