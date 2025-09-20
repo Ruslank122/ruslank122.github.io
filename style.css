@@ -27,8 +27,6 @@
 }
 .main-body
 {
-    display: flex;
-    flex-direction: column;
     position: absolute;
     top: 0px;
     left: 0px;
@@ -39,12 +37,39 @@
     overflow: hidden;
     background: var(--bg-color-day);
     transition: background-color 5s linear; 
-    padding: 5px;
-    box-sizing: border-box;
-
     color: #000000;
     font-family:'Gill Sans', 'Gill Sans MT', 'Calibri', 'Trebuchet MS', sans-serif;
 }
+#real-time-data, #archive
+{
+    display: flex;
+    flex-direction: column;
+    padding: 5px;
+    box-sizing: border-box;
+    width: 100%;
+    height: calc(100% - var(--top-bar-height) - var(--current-data-height));
+}
+.button
+{
+    background: #497cb2;
+    font-size: 1.2em;
+    border-radius: 12px;
+    overflow: hidden;
+    padding: 10px;
+    margin: 5px;
+    border: 10px;
+    box-sizing: border-box;
+    font-family: inherit;
+    color: inherit;
+
+    transition: 0.15s linear;
+}
+.button:hover
+{
+    cursor: pointer;   
+    background: #3c6591; 
+}
+
 .card
 {
     display: flex;
@@ -72,6 +97,7 @@
     overflow: hidden;
     vertical-align: middle;
     align-items: center;
+    justify-content: space-between;
     
 }
 .current-data
@@ -79,6 +105,7 @@
     flex-direction:column;
     height: var(--current-data-height);
     width: 100%;
+    height: 100%;
     overflow: hidden;
     
 }
@@ -129,7 +156,7 @@
 {
     font-size: 0.6em !important;
 }
-#current-data-div, #graphs
+#current-data-div, #graphs, #archive-data-div
 {
     display: grid;
     flex: 1;
@@ -141,6 +168,13 @@
 @media (min-width: 768px) {
   #graphs {
     grid-template-columns: repeat(2, 1fr); /* 2 columns on PC */
+  }
+}
+@media (max-width: 768px) {
+  #graphs > div > canvas
+  {
+     min-height: 300px;
+     aspect-ratio: auto;
   }
 }
 #wind-speed
@@ -173,4 +207,18 @@
 #charts
 {
     display: none;
+}
+
+#archive-date-selector
+{
+    justify-content: left;
+    box-sizing: border-box;
+    gap: 5px;       
+    background-clip: revert;
+    align-items: center;
+    justify-content: space-between;
+}
+#archive-data
+{
+    color: inherit;
 }

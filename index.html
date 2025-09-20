@@ -8,9 +8,11 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="main-body">
+    <div class="main-body" data-mode="realtime">
+        <section id="real-time-data" style="display: flex;">
         <div class="card top-area">
             <div class="logo">Weather Data</div>
+            <button type="button" data-tab="archive" class="button">Archive</button>
         </div>
         <div class="card-no-bg current-data">
             <!-- div class="card-title">Current weather</div -->
@@ -69,8 +71,6 @@
                     </div>
                 </div>
                 <div class="current-data-section">
-                  
-                    
                     <div class="card data-entry" id="pressure">
                         <div class="data-entry-title">
                             🕰 Pressure
@@ -108,7 +108,84 @@
                 </div>
             </div>
         </div>
-        <div class="card-no-bg graph-data">
+        </section>
+        <section id="archive" style="display: none;">
+            <div class="card top-area">
+                <div class="logo">Weather Archive</div>
+                <button type="button" data-tab="real-time-data" class="button">Real time</button>
+            </div>
+             <div class="card" id="archive-date-selector">
+                <div style="padding: 5px;">Select date:
+                    <input type="date" onclick="" id="archive-date"></input>
+                </div>
+                <button type="button" class="button" id="fetch-archive" onclick="">Load data</button>
+            </div>
+            <div class="card-no-bg current-data">
+                 <div id="archive-data">
+                            Please select a day!
+                    </div>
+                <div id="archive-data-div" style="display: flex;">
+                   
+                    <div class="current-data-section">
+                       <div class="card data-entry" id="archive-temperature">
+                        <div class="data-entry-title">
+                           🌡 Temperature
+                        </div>
+                        
+                        <div class="data-entry-value" id="archive-temperature-val-max">
+                            <div style="color:darkred">&uarr;</div>
+                            -
+                            <div class="data-entry-value-suffix" id="archive-temperature-time-max">
+                                at -
+                            </div>
+                        </div>
+                         <div class="data-entry-value" id="archive-temperature-val-min">
+                             <div style="color:darkcyan">&darr;</div>
+                            -
+                            <div class="data-entry-value-suffix" id="archive-temperature-time-min">
+                                at -
+                            </div>
+                        </div>
+                    </div>
+                     <div class="card data-entry" id="archive-humidity">
+                            <div class="data-entry-title">
+                           💧 Humidity   
+                            </div> 
+                             <div class="data-entry-value" id="archive-humidity-val-max">
+                                <div style="color:darkcyan">&uarr;</div>
+                                -
+                                <div class="data-entry-value-suffix" id="archive-humidity-time-max">
+                                    at -
+                                </div>
+                            </div>
+                            <div class="data-entry-value" id="archive-humidity-val-min">
+                                <div style="color:peru">&darr;</div>
+                                -
+                                <div class="data-entry-value-suffix" id="archive-humidity-time-min">
+                                    at -
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="current-data-section">
+                        <div class="card data-entry" id="archive-precipitation">
+                        <div class="data-entry-title">
+                           🌧 Precipitation
+                        </div>
+                        <div class="data-entry-value" id="archive-precipitation-val">
+                            -mm
+                            <div class="data-entry-value-suffix">
+                                total
+                            </div>
+                        </div>
+                    </div>
+                        
+                    </div>
+
+                </div>
+            </div>
+    </section>
+       <div class="card-no-bg graph-data">
             <div class="loading-div">
                     Loading...
             </div>
@@ -120,9 +197,12 @@
                 <div class="card"><canvas id="chart2"></canvas></div>
                 <div class="card"><canvas id="chart3"></canvas></div>
                 <div class="card"><canvas id="chart4"></canvas></div>
+                <div class="card"><canvas id="chart5"></canvas></div>
+                <div class="card"><canvas id="chart6"></canvas></div>
             </div>
-        </div>
     </div>
+</div>
+</div>
 </body>
 <script type="module" src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
 <script type="module" src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>

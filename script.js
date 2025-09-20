@@ -22,6 +22,8 @@ const app = initializeApp(firebaseConfig);
 // Initialize Realtime Database and get a reference to the service
 const database = getDatabase(app);
 
+var atArchive = false;
+
 const date = new Date();
 const currentDate = date.toISOString().split('T')[0];
 
@@ -29,20 +31,30 @@ const ctx = document.getElementById('chart1');
 const ctx2 = document.getElementById('chart2');
 const ctx3 = document.getElementById('chart3');
 const ctx4 = document.getElementById('chart4');
+const ctx5 = document.getElementById('chart5');
+const ctx6 = document.getElementById('chart6');
 
 Chart.defaults.color = "#444444";
 Chart.defaults.font.family = "'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif";
+var DP = [];
+var DPHumidity = [];
+var DPVoltage = [];
+var DPWindAvg = [], DPWindMax = [];
+var DPHeatIndex = [], DPWindChill = [];
+var DPRain10min = [], DPRainTotal = [];
 var tempGraph = new Chart(ctx, {
   type: 'line',
   data: {
     labels: [],
     datasets: [{
       label: 'Temperature, deg. C',
-      data: [],
+      data: DP,
       borderWidth: 1
     }]
   },
   options: {
+    responsive: true,
+    maintainAspectRatio: false, // <— very important
     plugins:
     {
       title:
@@ -78,11 +90,13 @@ var humidityGraph = new Chart(ctx2, {
     labels: [],
     datasets: [{
       label: 'Humidity, %',
-      data: [],
+      data: DPHumidity,
       borderWidth: 1
     }]
   },
   options: {
+     responsive: true,
+    maintainAspectRatio: false, // <— very important
      plugins:
     {
       title:
@@ -118,16 +132,18 @@ var windGraph = new Chart(ctx3, {
     labels: [],
     datasets: [{
       label: 'Avg. speed, m/s',
-      data: [],
+      data: DPWindAvg,
       borderWidth: 1
     },
     {
       label: 'Max. speed, m/s',
-      data: [],
+      data: DPWindMax,
       borderWidth: 1
     }]
   },
   options: {
+     responsive: true,
+    maintainAspectRatio: false, // <— very important
      plugins:
     {
       title:
@@ -157,17 +173,115 @@ var windGraph = new Chart(ctx3, {
     }
   }
 });
-var voltGraph = new Chart(ctx4, {
+var heatIndexGraph = new Chart(ctx4, {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [
+      {
+      label: 'Wind chill, °C',
+      data: DPWindChill,
+      borderWidth: 1
+    },
+    {
+      label: 'Heat index, DI',
+      data: DPHeatIndex,
+      borderWidth: 1
+    }
+    ]
+  },
+  options: {
+     responsive: true,
+    maintainAspectRatio: false, // <— very important
+     plugins:
+    {
+      title:
+      {
+        display: true,
+        text: "Heat & chill index"
+      }
+    },
+    scales: {
+    x:
+    {
+        type: "time",
+        bounds: "ticks",
+        time:
+        {
+          displayFormats:
+          {
+            hour: "HH:mm"
+          }
+        },
+        min: new Date().setUTCHours(0, 0, 0, 0),
+        max: new Date().setUTCHours(23, 59, 59, 999)
+    },
+      y: {
+        beginAtZero: false
+      }
+    }
+  }
+});
+var precipitationGraph = new Chart(ctx5, {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [{
+      label: '10 min. precipitation, mm',
+      data: DPRain10min,
+      borderWidth: 1
+    },
+    {
+      label: 'Total precipitation, mm',
+      data: DPRainTotal,
+      borderWidth: 1
+    }]
+  },
+  options: {
+     responsive: true,
+    maintainAspectRatio: false, // <— very important
+     plugins:
+    {
+      title:
+      {
+        display: true,
+        text: "Precipitation"
+      }
+    },
+    scales: {
+    x:
+    {
+        type: "time",
+        bounds: "ticks",
+        time:
+        {
+          displayFormats:
+          {
+            hour: "HH:mm"
+          }
+        },
+        min: new Date().setUTCHours(0, 0, 0, 0),
+        max: new Date().setUTCHours(23, 59, 59, 999)
+    },
+      y: {
+        beginAtZero: true
+      }
+    }
+  }
+});
+var voltGraph = new Chart(ctx6, {
   type: 'line',
   data: {
     labels: [],
     datasets: [{
       label: 'Voltage, v',
-      data: [],
+      data: DPVoltage,
       borderWidth: 1
     }]
   },
   options: {
+     responsive: true,
+    maintainAspectRatio: false, // <— very important
      plugins:
     {
       title:
@@ -197,10 +311,13 @@ var voltGraph = new Chart(ctx4, {
     }
   }
 });
+
+const graphs = [tempGraph, humidityGraph, windGraph, heatIndexGraph, precipitationGraph, voltGraph];
+
 const heatIndexThresholds =
 {
     22: "Light",
-    24: "Mild",
+    24: "Moderate",
     26: "Medium",
     28: "Severe",
     30: "Extreme"
@@ -237,40 +354,41 @@ function getWindDirection(angle) {
 
     return windDirections[index];
 }
+var r = document.querySelector(':root');
+var labelColor;
+var cardColor;
 
+document.querySelector(".main-body").style.background = getComputedStyle(r).getPropertyValue("--bg-color-night");
+document.querySelector(".main-body").style.color = getComputedStyle(r).getPropertyValue("--font-night");
+//Chart.defaults.backgroundColor = '#FFFFFF16';
+labelColor = Chart.defaults.color = getComputedStyle(r).getPropertyValue("--font-night");
+cardColor = getComputedStyle(r).getPropertyValue("--card-bg-night");
+document.querySelectorAll(".card").forEach(element => {
+    element.style.backgroundColor = cardColor;
+});
 
-let sampleData = new Map();
+var todaySampleData = new Map();
 
 const measurementsRef = ref(database, '/station1/measurements/' + currentDate + "/")
-get(measurementsRef).then((snapshot) => 
+
+var todayData = await fetchDataForDate(currentDate);
+//console.log(`${typeof(todayData)} ${Object.entries(todayData)}`);
+
+todaySampleData = daySnapshotToMap(todayData);
+printData(todaySampleData);
+
+onChildAdded(measurementsRef, snapshot =>
 {
-    if(snapshot.exists())
-    {
-        console.log(snapshot.val());
-        snapshot.forEach(element => {
-            //console.log(element.val()["uploadPath"], element.val());
-            if(element.val() !== null && !sampleData.has(element.val()["uploadPath"])){
-                sampleData.set(element.val()["uploadPath"], element.val());
-            }
-        });
-        
-        setInterval(() => {printData(sampleData);}, 30000);
+  const data = snapshot.val();
+  //console.log("Child added");
+  //console.log(data);
+  //console.log(snapshot.key);
+  if(data !== null && !todaySampleData.has(snapshot.key)){
+    todaySampleData.set(snapshot.key, data);
+    printData(todaySampleData);
     }
-    printData(sampleData);
-    onChildAdded(measurementsRef, snapshot =>
-      {
-      const data = snapshot.val();
-      //console.log("Child added");
-    //console.log(data);
-    //console.log(snapshot.key);
-      if(data !== null && !sampleData.has(data["uploadPath"])){
-        sampleData.set(data["uploadPath"], data);
-        printData(sampleData);
-      }
-      
-       }
-    );
-});
+  }
+);
 
 function calculateSunriseSunset()
 {
@@ -324,41 +442,7 @@ function timeDiffMinutesFromNow(dateThen)
 
 function printData(samples)
 {
-
-  var timings = calculateSunriseSunset();
-  var r = document.querySelector(':root');
-  var labelColor;
-  var cardColor;
-  if(Date.now() < timings.sunrise + 1800000 || Date.now() > timings.sunset - 1800000)
-  {
-    document.querySelector(".main-body").style.background = getComputedStyle(r).getPropertyValue("--bg-color-night");
-    document.querySelector(".main-body").style.color = getComputedStyle(r).getPropertyValue("--font-night");
-    //Chart.defaults.backgroundColor = '#FFFFFF16';
-    labelColor = Chart.defaults.color = getComputedStyle(r).getPropertyValue("--font-night");
-    cardColor = getComputedStyle(r).getPropertyValue("--card-bg-night");
-  }
-  else if(Date.now() > timings.sunrise + 1800000 && Date.now() < timings.sunset - 1800000)
-  {
-    document.querySelector(".main-body").style.background = getComputedStyle(r).getPropertyValue("--bg-color-day");
-    document.querySelector(".main-body").style.color = getComputedStyle(r).getPropertyValue("--font-day");
-    //Chart.defaults.backgroundColor = '#00000016';
-    labelColor = Chart.defaults.color = getComputedStyle(r).getPropertyValue("--font-day");
-    cardColor = getComputedStyle(r).getPropertyValue("--card-bg");
-  }
-  else
-  {
-    document.querySelector(".main-body").style.background = getComputedStyle(r).getPropertyValue("--bg-color-set");
-    document.querySelector(".main-body").style.color = getComputedStyle(r).getPropertyValue("--font-day");
-    //Chart.defaults.backgroundColor = '#00000016';
-    labelColor = Chart.defaults.color = getComputedStyle(r).getPropertyValue("--font-day");
-    cardColor = getComputedStyle(r).getPropertyValue("--card-bg");
-  }
-
-  document.querySelectorAll(".card").forEach(element => {
-      element.style.backgroundColor = cardColor;
-  });
-
-  var dataExists = sampleData.size != 0;
+  var dataExists = samples.size != 0;
 
   document.querySelectorAll(".loading-div, .loading-error").forEach(element => {
     element.style.display = (dataExists) ? "none" : "block";
@@ -367,33 +451,29 @@ function printData(samples)
 
    //console.log(samples);
    
-   if(!dataExists)
+   if(!dataExists || atArchive)
     return;
 
    var latestDataKey = [...samples.keys()].at(-1);
    var data = [...samples.values()].at(-1);
 
-   //console.log(latestDataKey, data);
-
-//DI=T−.55∗(1−.01∗RH)∗(T−14.5)
-   var heatIndex = data.avgTemp - 0.55 * (1 - 0.01 * data.humidity) * (data.avgTemp - 14.5);
-
-   //console.log(heatIndex);
-
-   var date = latestDataKey.split('/')[1];
-   var time = latestDataKey.split('/')[2];
-   
-   var dateLastUpdate = new Date(`${date}T${time}Z`);
+   var dateLastUpdate = new Date(`${currentDate}T${latestDataKey}Z`);
 
    var diff = timeDiffMinutesFromNow(dateLastUpdate);
   
    const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto", style: "short" });
 
+  for(let i = 0; i < graphs.length; i++)
+  {
+    for(let j = 0; j < graphs[i].data.datasets.length; j++)
+      graphs[i].data.datasets[j].data.length = 0;
+  }
+
    var rainLastHour = 0;
-   var DP = [];
-   var DPHumidity = [];
-   var DPVoltage = [];
-   var DPWindAvg = [], DPWindMax = [];
+   var rainLastDay = 0;
+   
+
+
    samples.forEach(element => {
     var dateR = element["uploadPath"].split('/')[1];
     var timeR = element["uploadPath"].split('/')[2];
@@ -405,10 +485,24 @@ function printData(samples)
     DPVoltage.push({"x": dateLastUpdateR, "y": element["batteryV"]});
     DPWindAvg.push({"x": dateLastUpdateR, "y": element["avgWindS"]});
     DPWindMax.push({"x": dateLastUpdateR, "y": element["maxWindS"]});
-
+    rainLastDay += element["totalRain"];
     if(timeDiffMinutesFromNow(dateLastUpdateR) <= 60)
         rainLastHour += element["totalRain"];
+
+    DPRain10min.push({"x": dateLastUpdateR, "y": element["totalRain"]});
+    DPRainTotal.push({"x": dateLastUpdateR, "y": rainLastDay});
+
+    var wc = calculateWindChill(element["avgTemp"], element["avgWindS"]);
+    var hi = calculateHeatIndex(element["avgTemp"], element["humidity"]);
+    if(wc < 10)
+      DPWindChill.push({"x": dateLastUpdateR, "y": wc});
+    if(hi >= 22)
+      DPHeatIndex.push({"x": dateLastUpdateR, "y": hi});
    });
+   
+
+  var heatIndex = calculateHeatIndex(data.avgTemp, data.humidity)
+  var windChill = calculateWindChill(data.avgTemp, data.avgWindS);
 
 // Update HTML elements with live data
   document.getElementById("heat-index-val").textContent = `${heatIndex.toFixed(1)} - ${getHeatIndexLabel(heatIndex)}`;
@@ -429,25 +523,206 @@ function printData(samples)
   }
   document.getElementById("precipitation-val").childNodes[0].nodeValue = `${data.totalRain.toFixed(1)}mm`;
   document.getElementById("precipitation-hour-val").textContent = `${rainLastHour.toFixed(1)} last hour`;
-  document.getElementById("last-updated-val").textContent = rtf.format(-diff, 'minute');
+  document.getElementById("last-updated-val").textContent = dateLastUpdate.toLocaleTimeString(navigator.language, {hour: '2-digit', minute:'2-digit'});
   
   tempGraph.data.datasets[0].data = DP;
   humidityGraph.data.datasets[0].data = DPHumidity;
   voltGraph.data.datasets[0].data = DPVoltage;
   windGraph.data.datasets[0].data = DPWindAvg;
   windGraph.data.datasets[1].data = DPWindMax;
+  heatIndexGraph.data.datasets[0].data = DPWindChill;
+  heatIndexGraph.data.datasets[1].data = DPHeatIndex;
 
-  tempGraph.options.scales.x.ticks.color = tempGraph.options.scales.x.grid.color = tempGraph.options.scales.y.ticks.color = tempGraph.options.scales.y.grid.color = labelColor;
-  humidityGraph.options.scales.x.ticks.color = humidityGraph.options.scales.x.grid.color = humidityGraph.options.scales.y.ticks.color = humidityGraph.options.scales.y.grid.color = labelColor;
-  voltGraph.options.scales.x.ticks.color =   voltGraph.options.scales.x.grid.color =   voltGraph.options.scales.y.ticks.color =   voltGraph.options.scales.y.grid.color = labelColor;
-  windGraph.options.scales.x.ticks.color = windGraph.options.scales.x.grid.color = windGraph.options.scales.y.ticks.color = windGraph.options.scales.y.grid.color = labelColor;
+  precipitationGraph.data.datasets[0].data = DPRain10min;
+  precipitationGraph.data.datasets[1].data = DPRainTotal;
 
-  
-  tempGraph.update("none");
-  humidityGraph.update("none");
-  voltGraph.update("none");
-  windGraph.update("none");
+
+  for(let i = 0; i < graphs.length; i++)
+  {
+    graphs[i].options.scales.x.ticks.color = graphs[i].options.scales.x.grid.color = graphs[i].options.scales.y.ticks.color = graphs[i].options.scales.y.grid.color = labelColor;
+    graphs[i].update("none");
+  }
 
 }
 
+const archiveFetchBtn = document.querySelector("#fetch-archive");
+archiveFetchBtn.addEventListener("click", () =>
+{
+  const datePicker = document.getElementById("archive-date");
+  fetchArchive(datePicker.value);
+});
+
+const tabButtons = document.querySelectorAll(".button[data-tab]");
+
+tabButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    const tab = btn.dataset.tab; // gets the value of data-tab
+    switchTab(tab);
+  });
+});
+
+function switchTab(tab) {
+  document.querySelectorAll("section").forEach(s => {
+    s.style.display = s.id === tab ? "flex" : "none";
+  });
+}
+function calculateWindChill(temp, wind)
+{
+  wind *= 3.6; //it's in km/h while I supply m/s
+  return 13.12 + 0.6215* temp - 11.37*Math.pow(wind, 0.16) + 0.3965* temp * Math.pow(wind,0.16)
+}
+function calculateHeatIndex(temp, humidity)
+{
+  //DI=T−.55∗(1−.01∗RH)∗(T−14.5)
+  return temp - 0.55 * (1 - 0.01 * humidity) * (temp - 14.5);
+}
+function daySnapshotToMap(dailySnapshot)
+{
+  var tempMap = new Map(Object.entries(dailySnapshot));
+  
+  //console.log(tempMap);
+  return tempMap;
+}
+//Async, Date should be in yyyy-mm-dd format, like ISO 8601
+function fetchDataForDate(date)
+{
+  const measurementsRef = ref(database, '/station1/measurements/' + date + "/")
+ return get(measurementsRef)
+    .then((snapshot) => {
+      if (snapshot.exists()) {
+        return snapshot.val(); // return actual data object
+      } else {
+        return null; // no data for that date
+      }
+    })
+    .catch((error) => {
+      console.error("Error fetching data:", error);
+      return null;
+    });
+}
+function renderArchiveData(samples, date)
+{
+  var dataExists = samples != null && samples.size != 0;
+
+  document.querySelectorAll(".loading-div, .loading-error").forEach(element => {
+    element.style.display = (dataExists) ? "none" : "block";
+  });
+  document.querySelectorAll("#graphs > .card, #archive-data-div").forEach(element => 
+  {
+     element.style.display = (dataExists) ? "flex" : "none";
+  });
+  document.getElementById("current-data-div").style.display = (dataExists) ? "flex" : "none";
+
+  //console.log(samples);
+  
+  if(!dataExists)
+  {
+      document.getElementById("archive-data").textContent = `Error getting data for: ${new Date(`${date}T00:00:00Z`).toLocaleDateString()}`;
+      return;
+  }
+
+  for(let i = 0; i < graphs.length; i++)
+  {
+    for(let j = 0; j < graphs[i].data.datasets.length; j++)
+      graphs[i].data.datasets[j].data.length = 0;
+  }
+
+  
+   var minTemp = {value: 255, time: null}, maxTemp = {value: -255, time: null};
+   var minHumidity = {value: 100, time: null}, maxHumidity = {value: 0, time: null};
+   var rainLastDay = 0;
+   
+   samples.forEach(element => {
+    var dateR = element["uploadPath"].split('/')[1];
+    var timeR = element["uploadPath"].split('/')[2];
+    //console.log(dateR, timeR);
+    var dateLastUpdateR = new Date(`${dateR}T${timeR}Z`);
+
+    if(element.avgTemp > maxTemp.value){
+        maxTemp.value = element.avgTemp;
+        maxTemp.time = dateLastUpdateR;
+    }
+     if(element.avgTemp < minTemp.value){
+        minTemp.value = element.avgTemp;
+        minTemp.time = dateLastUpdateR;
+    }
+     if(element.humidity > maxHumidity.value){
+        maxHumidity.value = element.humidity;
+        maxHumidity.time = dateLastUpdateR;
+    }
+    if(element.humidity < minHumidity.value){
+        minHumidity.value = element.humidity;
+        minHumidity.time = dateLastUpdateR;
+    }
+    DP.push({"x": dateLastUpdateR, "y": element["avgTemp"]});
+    DPHumidity.push({"x": dateLastUpdateR, "y": element["humidity"]});
+    DPVoltage.push({"x": dateLastUpdateR, "y": element["batteryV"]});
+    DPWindAvg.push({"x": dateLastUpdateR, "y": element["avgWindS"]});
+    DPWindMax.push({"x": dateLastUpdateR, "y": element["maxWindS"]});
+    rainLastDay += element["totalRain"];
+
+    DPRain10min.push({"x": dateLastUpdateR, "y": element["totalRain"]});
+    DPRainTotal.push({"x": dateLastUpdateR, "y": rainLastDay});
+
+    var wc = calculateWindChill(element["avgTemp"], element["avgWindS"]);
+    var hi = calculateHeatIndex(element["avgTemp"], element["humidity"]);
+    if(wc < 10)
+      DPWindChill.push({"x": dateLastUpdateR, "y": wc});
+    if(hi >= 22)
+      DPHeatIndex.push({"x": dateLastUpdateR, "y": hi});
+   });
+   
+
+// Update HTML elements with archive data
+  document.getElementById("archive-data").textContent = `Archived data for ${new Date(`${date}T00:00:00Z`).toLocaleDateString()}`;
+
+  document.getElementById("archive-temperature-val-max").childNodes[2].nodeValue = `${maxTemp.value.toFixed(1)}°C`;
+  document.getElementById("archive-temperature-time-max").textContent = ` at ${maxTemp.time.toLocaleTimeString(navigator.language, {hour: '2-digit', minute:'2-digit'})}`;
+
+  document.getElementById("archive-temperature-val-min").childNodes[2].nodeValue = `${minTemp.value.toFixed(1)}°C`;
+  document.getElementById("archive-temperature-time-min").textContent = ` at ${minTemp.time.toLocaleTimeString(navigator.language, {hour: '2-digit', minute:'2-digit'})}`;
+
+  document.getElementById("archive-humidity-val-max").childNodes[2].nodeValue = `${maxHumidity.value.toFixed(0)}%`;
+  document.getElementById("archive-humidity-time-max").textContent = ` at ${maxHumidity.time.toLocaleTimeString(navigator.language, {hour: '2-digit', minute:'2-digit'})}`;
+
+  document.getElementById("archive-humidity-val-min").childNodes[2].nodeValue = `${minHumidity.value.toFixed(0)}%`;
+  document.getElementById("archive-humidity-time-min").textContent = ` at ${minHumidity.time.toLocaleTimeString(navigator.language, {hour: '2-digit', minute:'2-digit'})}`;
+
+  document.getElementById("archive-precipitation-val").childNodes[0].nodeValue = `${rainLastDay.toFixed(1)}mm`;
+  
+  tempGraph.data.datasets[0].data = DP;
+  humidityGraph.data.datasets[0].data = DPHumidity;
+  voltGraph.data.datasets[0].data = DPVoltage;
+  windGraph.data.datasets[0].data = DPWindAvg;
+  windGraph.data.datasets[1].data = DPWindMax;
+  heatIndexGraph.data.datasets[0].data = DPWindChill;
+  heatIndexGraph.data.datasets[1].data = DPHeatIndex;
+
+  precipitationGraph.data.datasets[0].data = DPRain10min;
+  precipitationGraph.data.datasets[1].data = DPRainTotal;
+
+
+  for(let i = 0; i < graphs.length; i++)
+  {
+    graphs[i].options.scales.x.min = new Date(`${date}T00:00:00Z`);
+    graphs[i].options.scales.x.max = new Date(`${date}T23:59:59Z`);
+    graphs[i].options.scales.x.ticks.color = graphs[i].options.scales.x.grid.color = graphs[i].options.scales.y.ticks.color = graphs[i].options.scales.y.grid.color = labelColor;
+    graphs[i].update();
+  }
+
+}
+async function fetchArchive(date)
+{
+  console.log(date);
+
+  var archiveData = await fetchDataForDate(date);
+  try
+  {
+    renderArchiveData(daySnapshotToMap(archiveData), date);
+  }
+  catch
+  {
+    renderArchiveData(null, date);
+  }
+}
 
