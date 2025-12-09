@@ -511,7 +511,7 @@ function printData(samples)
 
   document.getElementById("temperature-val").textContent = `${data.avgTemp.toFixed(1)}°C`;
   document.getElementById("temperature-max-val").textContent = `max. ${data.maxTemp.toFixed(1)}`;
-  document.getElementById("humidity-val").textContent = `${data.humidity.toFixed(0)}%`;
+ 
 
   if(data.pressure != null)
   {
@@ -520,6 +520,14 @@ function printData(samples)
   else
   {
     document.getElementById("pressure-val").textContent = `-`;
+  }
+  if(data.humidity != null)
+  {
+     document.getElementById("humidity-val").textContent = `${data.humidity.toFixed(0)}%`;
+  }
+  else
+  {
+      document.getElementById("humidity-val").textContent = `-`;
   }
   document.getElementById("precipitation-val").childNodes[0].nodeValue = `${data.totalRain.toFixed(1)}mm`;
   document.getElementById("precipitation-hour-val").textContent = `${rainLastHour.toFixed(1)} last hour`;

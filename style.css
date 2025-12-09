@@ -165,9 +165,16 @@
     /*padding: 0px 5px;*/
 }
 
+#graphs > div > canvas 
+{
+    min-height: 300px;
+    aspect-ratio: auto;
+}
+
 @media (min-width: 768px) {
   #graphs {
     grid-template-columns: repeat(2, 1fr); /* 2 columns on PC */
+    
   }
 }
 @media (max-width: 768px) {
