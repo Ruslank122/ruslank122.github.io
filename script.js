@@ -375,7 +375,7 @@ var todayData = await fetchDataForDate(currentDate);
 //console.log(`${typeof(todayData)} ${Object.entries(todayData)}`);
 
 todaySampleData = daySnapshotToMap(todayData);
-printData(todaySampleData);
+printData(todaySampleData, currentDate);
 
 onChildAdded(measurementsRef, snapshot =>
 {
@@ -385,7 +385,7 @@ onChildAdded(measurementsRef, snapshot =>
   //console.log(snapshot.key);
   if(data !== null && !todaySampleData.has(snapshot.key)){
     todaySampleData.set(snapshot.key, data);
-    printData(todaySampleData);
+    printData(todaySampleData, currentDate);
     }
   }
 );
@@ -440,7 +440,7 @@ function timeDiffMinutesFromNow(dateThen)
     return diff;
 }
 
-function printData(samples)
+function printData(samples, date)
 {
   var dataExists = samples.size != 0;
 
@@ -457,7 +457,7 @@ function printData(samples)
    var latestDataKey = [...samples.keys()].at(-1);
    var data = [...samples.values()].at(-1);
 
-   var dateLastUpdate = new Date(`${currentDate}T${latestDataKey}Z`);
+   var dateLastUpdate = new Date(`${date}T${latestDataKey}Z`);
 
    var diff = timeDiffMinutesFromNow(dateLastUpdate);
   
@@ -474,26 +474,24 @@ function printData(samples)
    
 
 
-   samples.forEach(element => {
-    var dateR = element["uploadPath"].split('/')[1];
-    var timeR = element["uploadPath"].split('/')[2];
-    //console.log(dateR, timeR);
-    var dateLastUpdateR = new Date(`${dateR}T${timeR}Z`);
+   samples.forEach((value, key) => {
+    console.log(key);
+    var dateLastUpdateR = new Date(`${date}T${key}Z`);
 
-    DP.push({"x": dateLastUpdateR, "y": element["avgTemp"]});
-    DPHumidity.push({"x": dateLastUpdateR, "y": element["humidity"]});
-    DPVoltage.push({"x": dateLastUpdateR, "y": element["batteryV"]});
-    DPWindAvg.push({"x": dateLastUpdateR, "y": element["avgWindS"]});
-    DPWindMax.push({"x": dateLastUpdateR, "y": element["maxWindS"]});
-    rainLastDay += element["totalRain"];
+    DP.push({"x": dateLastUpdateR, "y": value["avgTemp"]});
+    DPHumidity.push({"x": dateLastUpdateR, "y": value["humidity"]});
+    DPVoltage.push({"x": dateLastUpdateR, "y": value["batteryV"]});
+    DPWindAvg.push({"x": dateLastUpdateR, "y": value["avgWindS"]});
+    DPWindMax.push({"x": dateLastUpdateR, "y": value["maxWindS"]});
+    rainLastDay += value["totalRain"];
     if(timeDiffMinutesFromNow(dateLastUpdateR) <= 60)
-        rainLastHour += element["totalRain"];
+        rainLastHour += value["totalRain"];
 
-    DPRain10min.push({"x": dateLastUpdateR, "y": element["totalRain"]});
+    DPRain10min.push({"x": dateLastUpdateR, "y": value["totalRain"]});
     DPRainTotal.push({"x": dateLastUpdateR, "y": rainLastDay});
 
-    var wc = calculateWindChill(element["avgTemp"], element["avgWindS"]);
-    var hi = calculateHeatIndex(element["avgTemp"], element["humidity"]);
+    var wc = calculateWindChill(value["avgTemp"], value["avgWindS"]);
+    var hi = calculateHeatIndex(value["avgTemp"], value["humidity"]);
     if(wc < 10)
       DPWindChill.push({"x": dateLastUpdateR, "y": wc});
     if(hi >= 22)
