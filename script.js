@@ -439,7 +439,55 @@ function timeDiffMinutesFromNow(dateThen)
 
     return diff;
 }
+function addDataToGraphs(value, currentTime)
+{ 
+    //console.log(value, currentTime);
+    DP.push({"x": currentTime, "y": value["avgTemp"]});
+    DPHumidity.push({"x": currentTime, "y": value["humidity"]});
+    DPVoltage.push({"x": currentTime, "y": value["batteryV"]});
+    DPWindAvg.push({"x": currentTime, "y": value["avgWindS"]});
+    DPWindMax.push({"x": currentTime, "y": value["maxWindS"]});
+    
+    DPRain10min.push({"x": currentTime, "y": value["totalRain"]});
+    DPRainTotal.push({"x": currentTime, "y": value["totalRainDay"]});
 
+    var wc = calculateWindChill(value["avgTemp"], value["avgWindS"]);
+    var hi = calculateHeatIndex(value["avgTemp"], value["humidity"]);
+    if(wc < 10)
+      DPWindChill.push({"x": currentTime, "y": wc});
+    if(hi >= 22)
+      DPHeatIndex.push({"x": currentTime, "y": hi});
+}
+function renderGraphs(date)
+{
+  //clear graphs data
+  for(let i = 0; i < graphs.length; i++)
+  {
+    for (let j = 0; j < graphs[i].data.datasets.length; j++) {
+      graphs[i].data.datasets[j].data = [];
+    }
+  } 
+
+  tempGraph.data.datasets[0].data = DP;
+  humidityGraph.data.datasets[0].data = DPHumidity;
+  voltGraph.data.datasets[0].data = DPVoltage;
+  windGraph.data.datasets[0].data = DPWindAvg;
+  windGraph.data.datasets[1].data = DPWindMax;
+  heatIndexGraph.data.datasets[0].data = DPWindChill;
+  heatIndexGraph.data.datasets[1].data = DPHeatIndex;
+
+  precipitationGraph.data.datasets[0].data = DPRain10min;
+  precipitationGraph.data.datasets[1].data = DPRainTotal;
+
+  //console.log(`helo the date is ${date}`);
+  for(let i = 0; i < graphs.length; i++)
+  {
+    graphs[i].options.scales.x.min = new Date(`${date}T00:00:00Z`);
+    graphs[i].options.scales.x.max = new Date(`${date}T23:59:59Z`);
+    graphs[i].options.scales.x.ticks.color = graphs[i].options.scales.x.grid.color = graphs[i].options.scales.y.ticks.color = graphs[i].options.scales.y.grid.color = labelColor;
+    graphs[i].update("none");
+  }
+}
 function printData(samples, date)
 {
   var dataExists = samples.size != 0;
@@ -451,54 +499,32 @@ function printData(samples, date)
 
    //console.log(samples);
    
-   if(!dataExists || atArchive)
+  if(!dataExists || atArchive)
     return;
 
-   var latestDataKey = [...samples.keys()].at(-1);
-   var data = [...samples.values()].at(-1);
+  var latestDataKey = [...samples.keys()].at(-1);
+  var data = [...samples.values()].at(-1);
 
-   var dateLastUpdate = new Date(`${date}T${latestDataKey}Z`);
+  var dateLastUpdate = new Date(`${date}T${latestDataKey}Z`);
+  var rainLastHour = 0, rainLastDay = 0;
 
-   var diff = timeDiffMinutesFromNow(dateLastUpdate);
-  
-   const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto", style: "short" });
+  samples.forEach((value, key) => {
+      
+    var dateCurrentItem = new Date(`${date}T${key}Z`);
+    //onsole.log(dateCurrentItem);
+    var diff = timeDiffMinutesFromNow(dateLastUpdate);
 
-  for(let i = 0; i < graphs.length; i++)
-  {
-    for(let j = 0; j < graphs[i].data.datasets.length; j++)
-      graphs[i].data.datasets[j].data.length = 0;
-  }
+    if(timeDiffMinutesFromNow(dateCurrentItem) <= 60)
+      rainLastHour += value["totalRain"];
 
-   var rainLastHour = 0;
-   var rainLastDay = 0;
-   
+    rainLastDay += value["totalRain"]
+    value["totalRainDay"] = rainLastDay;
 
+    addDataToGraphs(value, dateCurrentItem);
+     
+  });
 
-   samples.forEach((value, key) => {
-    console.log(key);
-    var dateLastUpdateR = new Date(`${date}T${key}Z`);
-
-    DP.push({"x": dateLastUpdateR, "y": value["avgTemp"]});
-    DPHumidity.push({"x": dateLastUpdateR, "y": value["humidity"]});
-    DPVoltage.push({"x": dateLastUpdateR, "y": value["batteryV"]});
-    DPWindAvg.push({"x": dateLastUpdateR, "y": value["avgWindS"]});
-    DPWindMax.push({"x": dateLastUpdateR, "y": value["maxWindS"]});
-    rainLastDay += value["totalRain"];
-    if(timeDiffMinutesFromNow(dateLastUpdateR) <= 60)
-        rainLastHour += value["totalRain"];
-
-    DPRain10min.push({"x": dateLastUpdateR, "y": value["totalRain"]});
-    DPRainTotal.push({"x": dateLastUpdateR, "y": rainLastDay});
-
-    var wc = calculateWindChill(value["avgTemp"], value["avgWindS"]);
-    var hi = calculateHeatIndex(value["avgTemp"], value["humidity"]);
-    if(wc < 10)
-      DPWindChill.push({"x": dateLastUpdateR, "y": wc});
-    if(hi >= 22)
-      DPHeatIndex.push({"x": dateLastUpdateR, "y": hi});
-   });
-   
-
+  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto", style: "short" });
   var heatIndex = calculateHeatIndex(data.avgTemp, data.humidity)
   var windChill = calculateWindChill(data.avgTemp, data.avgWindS);
 
@@ -531,23 +557,7 @@ function printData(samples, date)
   document.getElementById("precipitation-hour-val").textContent = `${rainLastHour.toFixed(1)} last hour`;
   document.getElementById("last-updated-val").textContent = dateLastUpdate.toLocaleTimeString(navigator.language, {hour: '2-digit', minute:'2-digit'});
   
-  tempGraph.data.datasets[0].data = DP;
-  humidityGraph.data.datasets[0].data = DPHumidity;
-  voltGraph.data.datasets[0].data = DPVoltage;
-  windGraph.data.datasets[0].data = DPWindAvg;
-  windGraph.data.datasets[1].data = DPWindMax;
-  heatIndexGraph.data.datasets[0].data = DPWindChill;
-  heatIndexGraph.data.datasets[1].data = DPHeatIndex;
-
-  precipitationGraph.data.datasets[0].data = DPRain10min;
-  precipitationGraph.data.datasets[1].data = DPRainTotal;
-
-
-  for(let i = 0; i < graphs.length; i++)
-  {
-    graphs[i].options.scales.x.ticks.color = graphs[i].options.scales.x.grid.color = graphs[i].options.scales.y.ticks.color = graphs[i].options.scales.y.grid.color = labelColor;
-    graphs[i].update("none");
-  }
+  renderGraphs(date);
 
 }
 
@@ -596,8 +606,11 @@ function fetchDataForDate(date)
  return get(measurementsRef)
     .then((snapshot) => {
       if (snapshot.exists()) {
+        console.log("Snapshot exists!");
         return snapshot.val(); // return actual data object
-      } else {
+      } 
+      else {
+        console.log("No snapshot exists!");
         return null; // no data for that date
       }
     })
@@ -619,65 +632,28 @@ function renderArchiveData(samples, date)
   });
   document.getElementById("current-data-div").style.display = (dataExists) ? "flex" : "none";
 
-  //console.log(samples);
+  console.log(samples, dataExists, samples.size);
   
   if(!dataExists)
   {
       document.getElementById("archive-data").textContent = `Error getting data for: ${new Date(`${date}T00:00:00Z`).toLocaleDateString()}`;
       return;
-  }
-
-  for(let i = 0; i < graphs.length; i++)
-  {
-    for(let j = 0; j < graphs[i].data.datasets.length; j++)
-      graphs[i].data.datasets[j].data.length = 0;
-  }
-
-  
+  }  
    var minTemp = {value: 255, time: null}, maxTemp = {value: -255, time: null};
    var minHumidity = {value: 100, time: null}, maxHumidity = {value: 0, time: null};
+
    var rainLastDay = 0;
    
-   samples.forEach(element => {
-    var dateR = element["uploadPath"].split('/')[1];
-    var timeR = element["uploadPath"].split('/')[2];
-    //console.log(dateR, timeR);
-    var dateLastUpdateR = new Date(`${dateR}T${timeR}Z`);
+   samples.forEach((value, key) =>
+  {
+     var dateCurrentItem = new Date(`${date}T${key}Z`);
 
-    if(element.avgTemp > maxTemp.value){
-        maxTemp.value = element.avgTemp;
-        maxTemp.time = dateLastUpdateR;
-    }
-     if(element.avgTemp < minTemp.value){
-        minTemp.value = element.avgTemp;
-        minTemp.time = dateLastUpdateR;
-    }
-     if(element.humidity > maxHumidity.value){
-        maxHumidity.value = element.humidity;
-        maxHumidity.time = dateLastUpdateR;
-    }
-    if(element.humidity < minHumidity.value){
-        minHumidity.value = element.humidity;
-        minHumidity.time = dateLastUpdateR;
-    }
-    DP.push({"x": dateLastUpdateR, "y": element["avgTemp"]});
-    DPHumidity.push({"x": dateLastUpdateR, "y": element["humidity"]});
-    DPVoltage.push({"x": dateLastUpdateR, "y": element["batteryV"]});
-    DPWindAvg.push({"x": dateLastUpdateR, "y": element["avgWindS"]});
-    DPWindMax.push({"x": dateLastUpdateR, "y": element["maxWindS"]});
-    rainLastDay += element["totalRain"];
+    rainLastDay += value["totalRain"]
+    value["totalRainDay"] = rainLastDay;
 
-    DPRain10min.push({"x": dateLastUpdateR, "y": element["totalRain"]});
-    DPRainTotal.push({"x": dateLastUpdateR, "y": rainLastDay});
-
-    var wc = calculateWindChill(element["avgTemp"], element["avgWindS"]);
-    var hi = calculateHeatIndex(element["avgTemp"], element["humidity"]);
-    if(wc < 10)
-      DPWindChill.push({"x": dateLastUpdateR, "y": wc});
-    if(hi >= 22)
-      DPHeatIndex.push({"x": dateLastUpdateR, "y": hi});
-   });
-   
+    addDataToGraphs(value, dateCurrentItem);
+  });
+  
 
 // Update HTML elements with archive data
   document.getElementById("archive-data").textContent = `Archived data for ${new Date(`${date}T00:00:00Z`).toLocaleDateString()}`;
@@ -696,30 +672,12 @@ function renderArchiveData(samples, date)
 
   document.getElementById("archive-precipitation-val").childNodes[0].nodeValue = `${rainLastDay.toFixed(1)}mm`;
   
-  tempGraph.data.datasets[0].data = DP;
-  humidityGraph.data.datasets[0].data = DPHumidity;
-  voltGraph.data.datasets[0].data = DPVoltage;
-  windGraph.data.datasets[0].data = DPWindAvg;
-  windGraph.data.datasets[1].data = DPWindMax;
-  heatIndexGraph.data.datasets[0].data = DPWindChill;
-  heatIndexGraph.data.datasets[1].data = DPHeatIndex;
-
-  precipitationGraph.data.datasets[0].data = DPRain10min;
-  precipitationGraph.data.datasets[1].data = DPRainTotal;
-
-
-  for(let i = 0; i < graphs.length; i++)
-  {
-    graphs[i].options.scales.x.min = new Date(`${date}T00:00:00Z`);
-    graphs[i].options.scales.x.max = new Date(`${date}T23:59:59Z`);
-    graphs[i].options.scales.x.ticks.color = graphs[i].options.scales.x.grid.color = graphs[i].options.scales.y.ticks.color = graphs[i].options.scales.y.grid.color = labelColor;
-    graphs[i].update();
-  }
-
+  renderGraphs(date);
+  
 }
 async function fetchArchive(date)
 {
-  console.log(date);
+  //console.log(date);
 
   var archiveData = await fetchDataForDate(date);
   try
