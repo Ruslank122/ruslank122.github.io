@@ -42,6 +42,9 @@ var DPVoltage = [];
 var DPWindAvg = [], DPWindMax = [];
 var DPHeatIndex = [], DPWindChill = [];
 var DPRain10min = [], DPRainTotal = [];
+
+var dataArrays = [DP, DPHumidity, DPVoltage, DPWindAvg, DPWindMax, DPHeatIndex, DPWindChill, DPRain10min, DPRainTotal]
+
 var tempGraph = new Chart(ctx, {
   type: 'line',
   data: {
@@ -439,6 +442,13 @@ function timeDiffMinutesFromNow(dateThen)
 
     return diff;
 }
+function clearGraphData()
+{
+  dataArrays.forEach(element =>
+  {
+    element.length = 0;
+  });
+}
 function addDataToGraphs(value, currentTime)
 { 
     //console.log(value, currentTime);
@@ -460,25 +470,6 @@ function addDataToGraphs(value, currentTime)
 }
 function renderGraphs(date)
 {
-  //clear graphs data
-  for(let i = 0; i < graphs.length; i++)
-  {
-    for (let j = 0; j < graphs[i].data.datasets.length; j++) {
-      graphs[i].data.datasets[j].data = [];
-    }
-  } 
-
-  tempGraph.data.datasets[0].data = DP;
-  humidityGraph.data.datasets[0].data = DPHumidity;
-  voltGraph.data.datasets[0].data = DPVoltage;
-  windGraph.data.datasets[0].data = DPWindAvg;
-  windGraph.data.datasets[1].data = DPWindMax;
-  heatIndexGraph.data.datasets[0].data = DPWindChill;
-  heatIndexGraph.data.datasets[1].data = DPHeatIndex;
-
-  precipitationGraph.data.datasets[0].data = DPRain10min;
-  precipitationGraph.data.datasets[1].data = DPRainTotal;
-
   //console.log(`helo the date is ${date}`);
   for(let i = 0; i < graphs.length; i++)
   {
@@ -508,6 +499,8 @@ function printData(samples, date)
   var dateLastUpdate = new Date(`${date}T${latestDataKey}Z`);
   var rainLastHour = 0, rainLastDay = 0;
 
+  clearGraphData();
+  
   samples.forEach((value, key) => {
       
     var dateCurrentItem = new Date(`${date}T${key}Z`);
@@ -639,21 +632,43 @@ function renderArchiveData(samples, date)
       document.getElementById("archive-data").textContent = `Error getting data for: ${new Date(`${date}T00:00:00Z`).toLocaleDateString()}`;
       return;
   }  
-   var minTemp = {value: 255, time: null}, maxTemp = {value: -255, time: null};
-   var minHumidity = {value: 100, time: null}, maxHumidity = {value: 0, time: null};
+  clearGraphData();
 
-   var rainLastDay = 0;
+  var minTemp = {value: 255, time: null}, maxTemp = {value: -255, time: null};
+  var minHumidity = {value: 100, time: null}, maxHumidity = {value: 0, time: null};
+
+  var rainLastDay = 0;
    
-   samples.forEach((value, key) =>
+  samples.forEach((value, key) =>
   {
-     var dateCurrentItem = new Date(`${date}T${key}Z`);
+    var dateCurrentItem = new Date(`${date}T${key}Z`);
 
     rainLastDay += value["totalRain"]
     value["totalRainDay"] = rainLastDay;
 
     addDataToGraphs(value, dateCurrentItem);
+
+    if(value.avgTemp < minTemp.value)
+    {
+      minTemp.value = value.avgTemp;
+      minTemp.time = dateCurrentItem;
+    }
+    if(value.avgTemp > maxTemp.value)
+    {
+      maxTemp.value = value.avgTemp;
+      maxTemp.time = dateCurrentItem;
+    }
+    if(value.humidity < minHumidity.value)
+    {
+      minHumidity.value = value.humidity;
+      minHumidity.time = dateCurrentItem;
+    }
+    if(value.humidity > maxHumidity.value)
+    {
+      maxHumidity.value = value.humidity;
+      maxHumidity.time = dateCurrentItem; 
+    }
   });
-  
 
 // Update HTML elements with archive data
   document.getElementById("archive-data").textContent = `Archived data for ${new Date(`${date}T00:00:00Z`).toLocaleDateString()}`;
@@ -682,11 +697,13 @@ async function fetchArchive(date)
   var archiveData = await fetchDataForDate(date);
   try
   {
-    renderArchiveData(daySnapshotToMap(archiveData), date);
+    var snapshot = daySnapshotToMap(archiveData);
+    renderArchiveData(snapshot, date);
   }
-  catch
+  catch (error)
   {
-    renderArchiveData(null, date);
+    console.log("Error during rendering archive data");
+    console.log(error);
   }
 }
 
