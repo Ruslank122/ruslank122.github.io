@@ -317,28 +317,61 @@ var voltGraph = new Chart(ctx6, {
 
 const graphs = [tempGraph, humidityGraph, windGraph, heatIndexGraph, precipitationGraph, voltGraph];
 
-const heatIndexThresholds =
-{
-    22: "Light",
-    24: "Moderate",
-    26: "Medium",
-    28: "Severe",
-    30: "Extreme"
-}
-function getHeatIndexLabel(temp) {
-    // Sort keys in ascending order
-    const thresholds = Object.keys(heatIndexThresholds)
-        .map(Number)
-        .sort((a, b) => a - b);
+const dewPointThresholds = [
+    { threshold: 24, level: "Oppressive" },
+    { threshold: 21, level: "Very humid" },
+    { threshold: 18, level: "Humid" },
+    { threshold: 15.5, level: "Slightly humid" },
+    { threshold: 13, level: "Pleasant" },
+    { threshold: 10, level: "Comfortable" }
+];
 
-    let label = "None";
+const heatIndexThresholds = [
+    { threshold: 30, level: "Extreme" },
+    { threshold: 28, level: "Severe" },
+    { threshold: 26, level: "Medium" },
+    { threshold: 24, level: "Moderate" },
+    { threshold: 22, level: "Light" }
+];
 
-    for (const t of thresholds) {
-        if (temp < t) break;
-        label = heatIndexThresholds[t];
+const chillIndexThresholds = [
+    { threshold: -3, level: "Extreme" },
+    { threshold: 1, level: "Medium" },
+    { threshold: 8, level: "Light" }
+];
+
+function getDewPointLabel(dewPoint) {
+    for (const element of dewPointThresholds) {
+        if (dewPoint >= element.threshold) {
+            return element.level;
+        }
     }
 
-    return label;
+    return "Dry";
+}
+
+function getChillIndexLabel(temp) {
+
+   for (const element of chillIndexThresholds) {
+
+        if (temp < element.threshold) {
+            return element.level;
+        }
+    }
+     
+    return "None";
+}
+
+function getHeatIndexLabel(temp) {
+
+    for (const element of heatIndexThresholds) {
+
+        if (temp > element.threshold) {
+            return element.level;
+        }
+    }
+
+    return "None";
 }
 const windDirections = [
     "N",       // 0
@@ -463,7 +496,7 @@ function addDataToGraphs(value, currentTime)
 
     var wc = calculateWindChill(value["avgTemp"], value["avgWindS"]);
     var hi = calculateHeatIndex(value["avgTemp"], value["humidity"]);
-    if(wc < 10)
+    if(wc <= 8)
       DPWindChill.push({"x": currentTime, "y": wc});
     if(hi >= 22)
       DPHeatIndex.push({"x": currentTime, "y": hi});
@@ -520,9 +553,21 @@ function printData(samples, date)
   const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto", style: "short" });
   var heatIndex = calculateHeatIndex(data.avgTemp, data.humidity)
   var windChill = calculateWindChill(data.avgTemp, data.avgWindS);
+  var dewPoint = calculateDewPoint(data.avgTemp, data.humidity);
 
 // Update HTML elements with live data
-  document.getElementById("heat-index-val").textContent = `${heatIndex.toFixed(1)} - ${getHeatIndexLabel(heatIndex)}`;
+  document.getElementById("heat-index-val").textContent = `${heatIndex.toFixed(1)}`;
+  document.getElementById("heat-index-name-val").textContent = getHeatIndexLabel(heatIndex);
+
+  document.getElementById("chill-index-val").textContent = `${windChill.toFixed(1)}`;
+  document.getElementById("chill-index-name-val").textContent = getChillIndexLabel(windChill);
+
+  document.getElementById("dew-point-val").textContent = `${dewPoint.toFixed(1)}°C`;;
+  document.getElementById("dew-point-name-val").textContent = getDewPointLabel(dewPoint);
+
+  document.getElementById("chill-index").style.display = windChill < 8.0 ? "flex" : "none";
+  document.getElementById("heat-index").style.display = heatIndex > 22.0 ? "flex" : "none";
+
   document.getElementById("wind-val").textContent = `${getWindDirection(data.windD)} ${data.avgWindS.toFixed(2)} m/s`;
   document.getElementById("wind-speed-max-val").textContent = `max. ${data.maxWindS.toFixed(2)}`;
 
@@ -530,7 +575,7 @@ function printData(samples, date)
   document.getElementById("temperature-max-val").textContent = `max. ${data.maxTemp.toFixed(1)}`;
  
 
-  if(data.pressure != null)
+  if(data.pressure != null && data.pressure > 0)
   {
     document.getElementById("pressure-val").textContent = `${data.pressure.toFixed(1)} hPa`;
   }
@@ -538,6 +583,7 @@ function printData(samples, date)
   {
     document.getElementById("pressure-val").textContent = `-`;
   }
+
   if(data.humidity != null)
   {
      document.getElementById("humidity-val").textContent = `${data.humidity.toFixed(0)}%`;
@@ -585,6 +631,13 @@ function calculateHeatIndex(temp, humidity)
   //DI=T−.55∗(1−.01∗RH)∗(T−14.5)
   return temp - 0.55 * (1 - 0.01 * humidity) * (temp - 14.5);
 }
+function calculateDewPoint(temp, humidity)
+{
+  var gamma = Math.log(humidity / 100) + ((17.625 * temp) / (243.04 + temp));
+  return (243.04 * gamma) / (17.625 - gamma);
+}
+
+
 function daySnapshotToMap(dailySnapshot)
 {
   var tempMap = new Map(Object.entries(dailySnapshot));
